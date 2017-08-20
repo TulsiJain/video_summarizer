@@ -125,7 +125,7 @@ class ConvVAE(object):
                         initializer = tf.truncated_normal([self.lstm_hidden_units, 1024], dtype=tf.float32))
 
             dec_bias_ = tf.get_variable("dec_bias",
-                                    initializer = tf.constant(0.1, shape=[1024], dtype=tf.float32))
+                                    initializer = tf.zeros(shape=[1024], dtype=tf.float32))
 
             expaned = tf.expand_dims(dec_weight_, 0)
 
@@ -201,4 +201,3 @@ class ConvVAE(object):
     #     # print('Shape= ', output_frame.shape)
     #     # plt.imshow(np.reshape(output_frame, [64, 64, 3]))
     #     # plt.show()
-    #

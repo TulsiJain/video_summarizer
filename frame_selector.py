@@ -1,7 +1,12 @@
 import tensorflow as tf
 
+# we need to output single value, score
 n_classes = 1
+
+# number of units in LSTM
 rnn_size = 1024
+
+# number of hidden layer in RNN
 rnn_layer = 2
 
 def fulconn_layer(input_data, activation_func=None):
@@ -9,23 +14,20 @@ def fulconn_layer(input_data, activation_func=None):
     input_dim = int(input_data.get_shape()[2])
 
     # ef  = tf.sqrt(input_dim1)
-    with tf.variable_scope("bi_directional_lstm"):
-        W = tf.get_variable("frame_sel_weights", initializer= tf.random_normal([input_dim, n_classes]))
-        b = tf.get_variable("frame_sel_biased", initializer= tf.random_normal([n_classes]))
+    W = tf.get_variable("frame_sel_weights", initializer= tf.truncated_normal([input_dim, n_classes],dtype=tf.float32))
+    b = tf.get_variable("frame_sel_biased", initializer= tf.zeros([n_classes],dtype=tf.float32))
 
     expaned = tf.expand_dims(W, 0)
     W = tf.tile(expaned, [bacth_size, 1, 1])
 
     if activation_func:
-        return  tf.reshape(activation_func(tf.matmul(input_data, W)) + b, [bacth_size,-1])
+        return  W,b, tf.reshape(activation_func(tf.matmul(input_data, W)) + b, [bacth_size,-1])
     else:
-        return  tf.reshape(tf.matmul(input_data, W) + b, [bacth_size,-1])
+        return  W,b, tf.reshape(tf.matmul(input_data, W) + b, [bacth_size,-1])
 
 def frame_selector_model(data):
 
     with tf.variable_scope("bi_directional_lstm"):
-
-
         stacked_rnn = []
         for iiLyr in range(rnn_layer):
             stacked_rnn.append(tf.nn.rnn_cell.BasicLSTMCell(num_units=rnn_size, state_is_tuple=True))
@@ -48,12 +50,12 @@ def frame_selector_model(data):
     # # As we want do classification, we only need the last output from LSTM.
     # last_output = outputs[:,0,:]
     # # Create the final classification layer
-        score = fulconn_layer(outputs)
+        weights, b, score = fulconn_layer(outputs)
     # score = tf.reshape(score, [input_dim])
 
-    score = tf.to_float(score)
+    score1 = tf.to_float(score)
 
-    score = tf.nn.l2_normalize(score, 0, epsilon=1e-12, name=None)
+    score2 = tf.nn.l2_normalize(score1, 0, epsilon=1e-12, name=None)
     # score = tf.div(
     #    tf.subtract(
     #       score,
@@ -64,36 +66,4 @@ def frame_selector_model(data):
     #       tf.reduce_min(score)
     #    )
     # )
-    return score
-
-
-
-def train_frame_selector_model(data):
-    # batch_size = int(data.get_shape()[0])
-    output = frame_selector_model(data)
-    # score = tf.reduce_mean(output)
-    return output
-	# cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=y) )
-	# optimizer = tf.train.AdamOptimizer().minimize(cost)
-
-# 	with tf.Session() as sess:
-#     # OLD:
-#     #sess.run(tf.initialize_all_variables())
-#     # NEW:
-# 	    sess.run(tf.global_variables_initializer())
-
-# 	    for epoch in range(hm_epochs):
-# 	        epoch_loss = 0
-# 	        for _ in range(int(mnist.train.num_examples/batch_size)):
-# 	            epoch_x, epoch_y = mnist.train.next_batch(batch_size)
-# 	            _, c = sess.run([optimizer, cost], feed_dict={x: epoch_x, y: epoch_y})
-# 	            epoch_loss += c
-
-# 	        print('Epoch', epoch, 'completed out of',hm_epochs,'loss:',epoch_loss)
-
-# 	    correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
-
-# 	    accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
-# 	    print('Accuracy:',accuracy.eval({x:mnist.test.images, y:mnist.test.labels}))
-
-# train_neural_network(x)
+    return outputs, weights, b, score

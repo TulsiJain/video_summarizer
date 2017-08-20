@@ -6,7 +6,7 @@ from inception_v1 import *
 import inception
 from utils import read_dataset
 import numpy as np
-from frame_selector import train_frame_selector_model
+from frame_selector import frame_selector_model
 from v_lstm_ae import ConvVAE
 from op1 import *
 from vanila import *
@@ -52,7 +52,7 @@ with slim.arg_scope(inception_v1_arg_scope):
 saver = tf.train.Saver()
 
 # frame_input = tf.placeholder(tf.float32, shape=[None, 32, 32])
-scores = train_frame_selector_model(extracedFeature1)
+outputs, weights, biased, scores = frame_selector_model(extracedFeature1)
 
 # position of frames with top score
 number_of_frames_selected = int(fraction_selection * number_of_frames)
@@ -124,7 +124,6 @@ ganLossAloneTrainList=[tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='d
 #optimizer 3
 ganLossAloneTrain = tf.train.AdamOptimizer().minimize(ganLossAlone, var_list=ganLossAloneTrainList)
 
-
 saver.restore(sess, checkpoint_file)
 
 # read dataSet
@@ -137,46 +136,23 @@ t = time.time()
 while (images.epochs_completed() < num_epochs):
 
     current_epoch = images.epochs_completed()
-    # step = 0
     print('[----Epoch {} is started ----]'.format(current_epoch))
     # take next batch until epoch is completed
+    i =0
     while (images.epochs_completed() < current_epoch + 1):
         # get the input images
         input_images = images.next_batch(batch_size)
         if input_images != None:
+            print('    [----Batch {} is started ----]'.format(i))
             input_images = np.asarray(input_images).reshape([batch_size*number_of_frames, 224, 224, 3])
-            # define sequence
-            # train_seq_len = np.ones(batch_size) * seq_length
-            # extracedFeatureData = sess.run([extracedFeature1],feed_dict={input_tensor: input_images})
-            # extracedFeatureData = np.asarray(extracedFeatureData).reshape([seq_length, -1, height_image])
-            # print(np.asarray(extracedFeatureData).shape)
-            z = sample_Z(batch_size,number_of_frames_selected, latent_dim)
-            encoderDecoderLoss1, reconsGanLoss1,ganLossAlone1, _, _, _ = sess.run([encoderDecoderLoss, reconsGanLoss, ganLossAlone, encoderDecoderTrain, reconsGanLossTrain, ganLossAloneTrain  ], feed_dict={input_tensor: input_images, z_samples : z})
-            print(encoderDecoderLoss1)
-            print(reconsGanLoss1)
-            print(ganLossAlone1)
-        # print(np.asarray(selectedFramesFeature1).shape)
-        # batch_num = np.asarray(selectedFramesFeature1).shape[0]
-        # # print(batch_num)
-        # selectedFramesFeature2 = np.asarray(selectedFramesFeature1).reshape([batch_num, seq_length, height_image])
-        # loss_val, _ = sess.run([encoderdecoderLoss, train], {p_input: selectedFramesFeature2})
-        # print (np.asarray(loss_val))
+            # z = sample_Z(batch_size,number_of_frames_selected, latent_dim)
+            outputs1, weights1, biased1, scores1, encoderDecoderLoss1, reconsGanLoss1,ganLossAlone1, _, _, _ = sess.run([outputs, weights, biased, scores, encoderDecoderLoss, reconsGanLoss, ganLossAlone, encoderDecoderTrain, reconsGanLossTrain, ganLossAloneTrain  ], feed_dict={input_tensor: input_images})
+            print("        encoderDecoderLoss =", encoderDecoderLoss1 , ", reconsGanLoss =", reconsGanLoss1, ", ganLossAlone =", ganLossAlone1)
+            print('    [----Batch {} is finished ----]'.format(i))
+        i = i + 1
+    print('[----Epoch {} is finished ----]'.format(current_epoch))
 
-    # print np.asarray(inpu11)
-    # input_images = extracedFeature
-    # do training step
-    # cvae.training_step(sess, input_images)
-    # step += 1
-
-    # if step % interval == 0:
-    # print 'loss: {} validation loss: {}'.format(cvae.loss_step(sess, input_images), cvae.loss_step(sess, valid_ds.next_batch(batch_size)))
-
-    # print '[----Epoch {} is finished----]'.format(current_epoch)
     # saver.save(sess, 'checkpoints/', global_step=current_epoch)
     # print '[----Checkpoint is saved----]'
 
-# print 'Training time: {}s'.format(time.time() - t)
-# frame_selector_model(featurefeature)
-# print type(featurefeature) is list
-# print (np.max(predict_values), np.max(logit_values))
-# print (np.argmax(predict_values), np.argmax(logit_values))
+print ('Training time: {}s'.format(time.time() - t))

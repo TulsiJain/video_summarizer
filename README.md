@@ -1,1 +1,1 @@
-# video_summarizer
+# Video Summarizer using unsupervised learning. 

@@ -3,8 +3,8 @@ import tensorflow as tf
 def dense(x, batch_size, input_dim, output_dim, name, reuse = False):
 	'''Fully-connected Layer'''
 	with tf.variable_scope(name, reuse = reuse):
-		w = tf.get_variable('weights', [input_dim, output_dim], initializer = tf.truncated_normal_initializer(stddev = 0.1))
-		b = tf.get_variable('biased', [output_dim], initializer = tf.constant_initializer(0.1))
+		w = tf.get_variable('weights',  initializer = tf.truncated_normal([input_dim, output_dim], dtype=tf.float32))
+		b = tf.get_variable('biased', initializer = tf.zeros([output_dim], dtype=tf.float32))
 
 		# x = tf.reshape(x, [-1, input_dim])
 		# y = tf.matmul(x, w) + b
