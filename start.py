@@ -8,7 +8,6 @@ from utils import read_dataset
 import numpy as np
 from frame_selector import frame_selector_model
 from v_lstm_ae import ConvVAE
-from op1 import *
 from vanila import *
 
 # Number of epochs
@@ -18,7 +17,7 @@ num_epochs = 5
 batch_size = 1
 
 #number of frame per video
-number_of_frames = 32
+number_of_frames = 9892
 
 # Google Save Model
 checkpoint_file = 'inception_v1.ckpt'
@@ -111,7 +110,7 @@ ganLossAloneTrain = tf.train.AdamOptimizer().minimize(ganLossAlone, var_list=gan
 saver.restore(sess, checkpoint_file)
 
 # read dataSet
-images = read_dataset("data1")
+images = read_dataset("data")
 
 sess.run(tf.global_variables_initializer())
 
