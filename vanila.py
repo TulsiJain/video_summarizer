@@ -1,10 +1,10 @@
 import tensorflow as tf
 import numpy as np
 
-def xavier_init(size):
-    in_dim = size[0]
-    xavier_stddev = 1. / tf.sqrt(in_dim / 2.)
-    return tf.random_normal(shape=size, stddev=xavier_stddev)
+# def xavier_init(size):
+#     in_dim = size[0]
+#     xavier_stddev = 1. / tf.sqrt(in_dim / 2.)
+#     return tf.random_normal(shape=size, stddev=xavier_stddev)
 
 
 
@@ -59,10 +59,13 @@ def discriminator(x, reuse):
         dec_outputs, dec_state = tf.contrib.rnn.static_rnn(
             lstm_multi_fw_cell, x, dtype=tf.float32)
 
-        D_W1 = tf.Variable(xavier_init([1024, 128]))
+        D_W1 = tf.get_variable("dec_weight_1", shape=[1024, 128],
+                                initializer=tf.contrib.layers.xavier_initializer())
+
         D_b1 = tf.Variable(tf.zeros(shape=[128]))
 
-        D_W2 = tf.Variable(xavier_init([128, 1]))
+        D_W2 = tf.get_variable("dec_weight_2", shape=[128, 1],
+                               initializer=tf.contrib.layers.xavier_initializer())
         D_b2 = tf.Variable(tf.zeros(shape=[1]))
 
         D_h1 = tf.nn.relu(tf.matmul(dec_outputs[-1], D_W1) + D_b1)
@@ -80,14 +83,8 @@ def gan_loss(G_sample, X):
     D_loss = (tf.reduce_mean(tf.log(D_real) + tf.log(1. - D_fake))  + tf.reduce_mean(tf.log(D_fake)))
 
     D_loss = tf.reduce_mean(tf.log(D_real) + tf.log(1. - D_fake) + tf.log(D_fake))
-
-
     return D_loss
 
-    # D_solver = tf.train.AdamOptimizer().minimize(D_loss, var_list=theta_D)
-
-
-# merged_summary_op = tf.summary.merge_all()
 
 
 

@@ -14,8 +14,8 @@ def fulconn_layer(input_data, activation_func=None):
     input_dim = int(input_data.get_shape()[2])
 
     # ef  = tf.sqrt(input_dim1)
-    W = tf.get_variable("frame_sel_weights", initializer= tf.truncated_normal([input_dim, n_classes],dtype=tf.float32))
-    b = tf.get_variable("frame_sel_biased", initializer= tf.zeros([n_classes],dtype=tf.float32))
+    W = tf.get_variable("frame_sel_weights", shape=[input_dim, n_classes],initializer= tf.contrib.layers.xavier_initializer())
+    b = tf.get_variable("frame_sel_biased", initializer= tf.zeros([n_classes]))
 
     expaned = tf.expand_dims(W, 0)
     W = tf.tile(expaned, [bacth_size, 1, 1])
@@ -53,17 +53,17 @@ def frame_selector_model(data):
         weights, b, score = fulconn_layer(outputs)
     # score = tf.reshape(score, [input_dim])
 
-    score1 = tf.to_float(score)
+    # score1 = tf.to_float(score)
 
-    score2 = tf.nn.l2_normalize(score1, 0, epsilon=1e-12, name=None)
-    # score = tf.div(
-    #    tf.subtract(
-    #       score,
-    #       tf.reduce_min(score)
-    #    ),
-    #    tf.subtract(
-    #       tf.reduce_max(score),
-    #       tf.reduce_min(score)
-    #    )
-    # )
+    # score2 = tf.nn.l2_normalize(score1, 0, epsilon=1e-12, name=None)
+    score = tf.div(
+       tf.subtract(
+          score,
+          tf.reduce_min(score)
+       ),
+       tf.subtract(
+          tf.reduce_max(score),
+          tf.reduce_min(score)
+       )
+    )
     return outputs, weights, b, score

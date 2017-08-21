@@ -121,8 +121,7 @@ class ConvVAE(object):
                 dec_outputs = dec_outputs[::-1]
             dec_output_ = tf.transpose(tf.stack(dec_outputs), [1, 0, 2])
 
-            dec_weight_ = tf.get_variable("dec_weight",
-                        initializer = tf.truncated_normal([self.lstm_hidden_units, 1024], dtype=tf.float32))
+            dec_weight_ = tf.get_variable("dec_weight",shape=[self.lstm_hidden_units, 1024], initializer=tf.contrib.layers.xavier_initializer())
 
             dec_bias_ = tf.get_variable("dec_bias",
                                     initializer = tf.zeros(shape=[1024], dtype=tf.float32))

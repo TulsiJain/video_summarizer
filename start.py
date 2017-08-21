@@ -38,15 +38,12 @@ sess = tf.Session()
 # default image dimension
 inception_v1.default_image_size = 224
 
-def sample_Z(m, n, k):
-    return np.random.uniform(-1., 1., size=[m, n, k])
-
 # Feature Extraction Scope definition
 inception_v1_arg_scope = inception.inception_v1_arg_scope()
 
 # Feature Extraction
 with slim.arg_scope(inception_v1_arg_scope):
-    extracedFeature = inception_v1(input_tensor, is_training=False, num_classes=1001)
+    extracedFeature = inception_v1(input_tensor, is_training=False, num_classes=1000)
     extracedFeature1 = tf.reshape(extracedFeature, [batch_size, number_of_frames, 1024])
 
 saver = tf.train.Saver()
@@ -66,7 +63,6 @@ sortedIndicesValue, sortedindi = tf.nn.top_k(indices, number_of_frames_selected)
 # reverse along 1 (a video)
 reverseindies = tf.reverse(sortedIndicesValue, [1])
 
-
 reverseindies = tf.expand_dims(reverseindies, axis=2)
 
 b = tf.constant(np.asarray([i*np.ones(reverseindies.shape[1]) for i in range(0, reverseindies.shape[0])], dtype=np.int32), dtype=tf.int32)
@@ -77,23 +73,11 @@ final_ids = tf.concat([b, reverseindies], axis=2)
 #combine frames with top score
 selectedFramesFeature = tf.gather_nd(extracedFeature1,final_ids)
 
-# selectedFramesFeature = selctedFrames(extracedFeature1,reverseindies )
-
-# selectedFramesFeature =  extracedFeature1
-
-#number of frames selected
-
 #convert to pass to the lstm variational auto encoder
-selectedFramesFeature2 = tf.reshape(selectedFramesFeature, [batch_size, number_of_frames_selected, 1024])
 #load lstm variational auto encoder
-cvae = ConvVAE(latent_dim, selectedFramesFeature2, batch_size, number_of_frames_selected)
+cvae = ConvVAE(latent_dim, selectedFramesFeature, batch_size, number_of_frames_selected)
 
-# z_samples = tf.placeholder(tf.float32, [batch_size, number_of_frames_selected, latent_dim], name="generate_placeholder")
-# z_samples2 = [tf.squeeze(t, [1]) for t in tf.split(z_samples, number_of_frames_selected, 1)]
-
-# efe =  cvae.generation_step(z_samples2)
-
-ganLoss = gan_loss(selectedFramesFeature2, extracedFeature1)
+ganLoss = gan_loss(selectedFramesFeature, extracedFeature1)
 
 lossScore = (tf.reduce_sum(scores)/batch_size*number_of_frames) - fraction_selection
 
@@ -145,8 +129,7 @@ while (images.epochs_completed() < num_epochs):
         if input_images != None:
             print('    [----Batch {} is started ----]'.format(i))
             input_images = np.asarray(input_images).reshape([batch_size*number_of_frames, 224, 224, 3])
-            # z = sample_Z(batch_size,number_of_frames_selected, latent_dim)
-            outputs1, weights1, biased1, scores1, encoderDecoderLoss1, reconsGanLoss1,ganLossAlone1, _, _, _ = sess.run([outputs, weights, biased, scores, encoderDecoderLoss, reconsGanLoss, ganLossAlone, encoderDecoderTrain, reconsGanLossTrain, ganLossAloneTrain  ], feed_dict={input_tensor: input_images})
+            extracedFeature2, outputs1, weights1, biased1, scores1, encoderDecoderLoss1, reconsGanLoss1,ganLossAlone1, _, _, _ = sess.run([extracedFeature1, outputs, weights, biased, scores, encoderDecoderLoss, reconsGanLoss, ganLossAlone, encoderDecoderTrain, reconsGanLossTrain, ganLossAloneTrain  ], feed_dict={input_tensor: input_images})
             print("        encoderDecoderLoss =", encoderDecoderLoss1 , ", reconsGanLoss =", reconsGanLoss1, ", ganLossAlone =", ganLossAlone1)
             print('    [----Batch {} is finished ----]'.format(i))
         i = i + 1

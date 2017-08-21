@@ -52,7 +52,7 @@ def read_images(filenames):
 		img = Image.open(file).resize((224,224))
 		image = np.array(img, dtype = np.float32)
 		# image = np.multiply(image, 1.0 / 255.0)
-		image = 2*(image/255.0)-1.0
+		# image = 2*(image/255.0)-1.0
 		images.append(image)
 	return images
 
