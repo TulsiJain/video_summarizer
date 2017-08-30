@@ -25,16 +25,16 @@ def fulconn_layer(input_data, activation_func=None):
     else:
         return  W,b, tf.reshape(tf.matmul(input_data, W) + b, [bacth_size,-1])
 
-def frame_selector_model(data):
+def frame_selector_model(data, sequence_length):
 
     with tf.variable_scope("bi_directional_lstm"):
         stacked_rnn = []
         for iiLyr in range(rnn_layer):
-            stacked_rnn.append(tf.nn.rnn_cell.BasicLSTMCell(num_units=rnn_size, state_is_tuple=True))
+            stacked_rnn.append(tf.contrib.rnn.BasicLSTMCell(num_units=rnn_size, state_is_tuple=True))
 
         stacked_rnn1 = []
         for iiLyr1 in range(rnn_layer):
-            stacked_rnn1.append(tf.nn.rnn_cell.BasicLSTMCell(num_units=rnn_size, state_is_tuple=True))
+            stacked_rnn1.append(tf.contrib.rnn.BasicLSTMCell(num_units=rnn_size, state_is_tuple=True))
 
         lstm_multi_fw_cell = tf.contrib.rnn.MultiRNNCell(cells=stacked_rnn)
         lstm_multi_bw_cell = tf.contrib.rnn.MultiRNNCell(cells=stacked_rnn1)
@@ -42,6 +42,7 @@ def frame_selector_model(data):
         outputs, output_states = tf.nn.bidirectional_dynamic_rnn(
             cell_fw=lstm_multi_fw_cell,
             cell_bw=lstm_multi_bw_cell,
+            sequence_length=sequence_length,
             inputs=data,
             dtype=tf.float32)
         # As we have Bi-LSTM, we have two output, which are not connected. So merge them
@@ -66,4 +67,4 @@ def frame_selector_model(data):
           tf.reduce_min(score)
        )
     )
-    return outputs, weights, b, score
+    return score

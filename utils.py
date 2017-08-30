@@ -4,11 +4,15 @@ import os
 from sklearn.model_selection import train_test_split
 
 class DataSet(object):
-	def __init__(self, videos):
+	def __init__(self, videos, dirnames):
 		self._num_of_video = len(videos)
+		self._dirnames = dirnames
 		self._vidoes = videos
 		self._index_in_epoch = 0
 		self._epochs_completed = 0
+
+	def directoryName(self):
+		return self._dirnames
 
 	def videos(self):
 		'''Returns images.'''
@@ -30,7 +34,7 @@ class DataSet(object):
 		if self._index_in_epoch > self._num_of_video:
 			self._epochs_completed += 1
 			self._index_in_epoch = 0
-			return None
+			return None, None
 
 			# perm = np.arange(self._num_of_video)
 			# np.random.shuffle(perm)
@@ -42,7 +46,7 @@ class DataSet(object):
 
 		end = self._index_in_epoch
 
-		return self._vidoes[start:end]
+		return self._vidoes[start:end], self._dirnames[start]
 
 def read_images(filenames):
 	'''Reads images from file names'''
@@ -67,4 +71,4 @@ def read_dataset(path):
 		images = np.array(images, dtype = np.float32)
 		videoimages.append(images)
 	train_images  = videoimages
-	return DataSet(train_images)
+	return DataSet(train_images, dirnames)

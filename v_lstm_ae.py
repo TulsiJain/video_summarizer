@@ -6,16 +6,16 @@ import matplotlib.pyplot as plt
 
 class ConvVAE(object):
     '''Convolutional variational autoencoder'''
-    def __init__(self, latent_dim, input_images, batch_size, number_of_frames):
+    def __init__(self, latent_dim, input_images, batch_size, sequence_length):
         self.latent_dim = latent_dim
         self.batch_size = batch_size
         self.lstm_hidden_layer = 2
         self.lstm_hidden_units = 2048
-        self.number_of_frames = number_of_frames
+        self.sequence_length = sequence_length
 
         # placeholder for input images. Input images are RGB 64x64
         self.input_images = input_images
-        p_inputs = [tf.squeeze(t, [1]) for t in tf.split(self.input_images, self.number_of_frames, 1)]
+        # p_inputs = [ tf.squeeze(t, [1]) for t in tf.split(self.input_images, self.number_of_frames, 1)]
         input_images_flat = tf.reshape(self.input_images, [batch_size, -1, 1024])
 
         # placeholder for z_samples. We are using this placeholder when we are generating new images
@@ -27,27 +27,27 @@ class ConvVAE(object):
 
         stacked_rnn = []
         for iiLyr in range(self.lstm_hidden_layer):
-            stacked_rnn.append(tf.nn.rnn_cell.BasicLSTMCell(num_units=self.lstm_hidden_units, state_is_tuple=True))
+            stacked_rnn.append(tf.contrib.rnn.BasicLSTMCell(num_units=self.lstm_hidden_units, state_is_tuple=True))
         lstm_multi_cell = tf.contrib.rnn.MultiRNNCell(cells=stacked_rnn)
 
         stacked_rnn1 = []
         for iiLyr in range(self.lstm_hidden_layer):
-            stacked_rnn1.append(tf.nn.rnn_cell.BasicLSTMCell(num_units=self.lstm_hidden_units, state_is_tuple=True))
+            stacked_rnn1.append(tf.contrib.rnn.BasicLSTMCell(num_units=self.lstm_hidden_units, state_is_tuple=True))
         lstm_multi_cell1 = tf.contrib.rnn.MultiRNNCell(cells=stacked_rnn1)
 
         self._enc_cell = lstm_multi_cell
         self._dec_cell = lstm_multi_cell1
 
         # encoder output
-        z_mean, z_logstd = self.encoder(p_inputs)
+        z_mean, z_logstd = self.encoder(self.input_images, self.sequence_length)
 
         # decoder input
-        samples = tf.random_normal([self.batch_size, self.number_of_frames, self.latent_dim], 0, 1, dtype=tf.float32)
-        z = z_mean + (tf.exp(.5 * z_logstd) * samples)
-        z = [tf.squeeze(t, [1]) for t in tf.split(z, number_of_frames, 1)]
+        samples = tf.random_normal([self.batch_size, self.sequence_length[0], self.latent_dim], 0, 1, dtype=tf.float32)
+        # z = z_mean + (tf.exp(.5 * z_logstd) * samples)
+        # z = [tf.squeeze(t, [1]) for t in tf.split(z, number_of_frames, 1)]
 
         # decoder output
-        self.generated_images = self.decoder(z, None)
+        self.generated_images = self.decoder(samples, None, sequence_length)
         self.generated_images_sigmoid = tf.sigmoid(self.generated_images)
         generated_images_flat = self.generated_images
 
@@ -71,11 +71,11 @@ class ConvVAE(object):
 
         # self.generator = tf.random_uniform([100, 50])
 
-    def encoder(self, data):
+    def encoder(self, data, sequence_length):
 
         with tf.variable_scope('encoder') as vs:
-            z_codes, self.enc_state = tf.contrib.rnn.static_rnn(
-                self._enc_cell, data, dtype=tf.float32)
+            z_codes, self.enc_state = tf.nn.dynamic_rnn(
+                self._enc_cell, data, sequence_length = sequence_length, dtype=tf.float32)
 
             batch_num = data[0].get_shape().as_list()[0]
             elem_num = data[0].get_shape().as_list()[1]
@@ -93,8 +93,10 @@ class ConvVAE(object):
 
         # fully connected layer
         #     h2_flat = z_codes[0]
-            h2_flat = tf.transpose(tf.stack(z_codes), [1, 0, 2])
+        #     h2_flat = tf.transpose(tf.stack(z_codes), [1, 0, 2])
             #
+            h2_flat = z_codes
+
             # z_mean = dense(h2_flat, 16 * 16 * 32, self.latent_dim, 'z_mean_dense')
             # z_logstd = dense(h2_flat, 16 * 16 * 32, self.latent_dim, 'z_stddev_dense')
 
@@ -104,7 +106,7 @@ class ConvVAE(object):
         return z_mean, z_logstd
         # return  z_codes
 
-    def decoder(self, z,reuse, activation=tf.identity,  reverse=True):
+    def decoder(self, z,reuse, sequence_length, activation=tf.identity,  reverse=True):
 
         # z = tf.expand_dims(z, 0)
         # z = tf.tile(z, [time_step,1,1])
@@ -114,12 +116,14 @@ class ConvVAE(object):
             # batch_num = z[0].get_shape().as_list()[0]
             # elem_num = z[0].get_shape().as_list()[1]
 
-            dec_outputs, dec_state = tf.contrib.rnn.static_rnn(
-                self._dec_cell, z, initial_state=self.enc_state, dtype=tf.float32)
+            dec_outputs, dec_state = tf.nn.dynamic_rnn(
+                self._dec_cell, z, initial_state=self.enc_state, sequence_length= sequence_length, dtype=tf.float32)
 
             if reverse:
                 dec_outputs = dec_outputs[::-1]
-            dec_output_ = tf.transpose(tf.stack(dec_outputs), [1, 0, 2])
+            # dec_output_ = tf.transpose(tf.stack(dec_outputs), [1, 0, 2])
+
+            dec_output_ = dec_outputs
 
             dec_weight_ = tf.get_variable("dec_weight",shape=[self.lstm_hidden_units, 1024], initializer=tf.contrib.layers.xavier_initializer())
 

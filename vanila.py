@@ -13,12 +13,6 @@ Z_dim = 100
 rnn_layer = 2
 batch_size = 2
 
-# X = tf.placeholder(tf.float32, shape=[None, num_of_frames, 1024])
-#
-# Z = tf.placeholder(tf.float32, shape=[None,num_of_frames, 100])
-# z = [tf.squeeze(t, [1]) for t in tf.split(Z, 32, 1)]
-
-
 
 # def generator(z, activation=tf.identity, reuse=False, reverse = True):
 #         stacked_rnn1 = []
@@ -45,19 +39,20 @@ batch_size = 2
 #             output = tf.matmul(dec_output_, dec_weight_) + dec_bias_
 #         return activation(output)
 
-def discriminator(x, reuse):
-
-    x = [tf.squeeze(t, [1]) for t in tf.split(x, x.get_shape()[1], 1)]
+def discriminator(x, reuse, sequence_length):
+    # a = np.asarray(x.get_shape()).tolist()[1]
+    # print (type(a))
+    # x = [tf.squeeze(t, [1]) for t in tf.split(x, frames, 1)]
     # with tf.variable_scope('cell_def'):
     with tf.variable_scope('discriminator', reuse=reuse):
         stacked_rnn1 = []
         for iiLyr1 in range(rnn_layer):
-            stacked_rnn1.append(tf.nn.rnn_cell.BasicLSTMCell(num_units=rnn_size, state_is_tuple=True, reuse=reuse))
+            stacked_rnn1.append(tf.contrib.rnn.BasicLSTMCell(num_units=rnn_size, state_is_tuple=True, reuse=reuse))
         lstm_multi_fw_cell = tf.contrib.rnn.MultiRNNCell(cells=stacked_rnn1)
 
         # with tf.variable_scope('rnn_def'):
-        dec_outputs, dec_state = tf.contrib.rnn.static_rnn(
-            lstm_multi_fw_cell, x, dtype=tf.float32)
+        dec_outputs, dec_state = tf.nn.dynamic_rnn(
+            lstm_multi_fw_cell, x, sequence_length= sequence_length, dtype=tf.float32)
 
         D_W1 = tf.get_variable("dec_weight_1", shape=[1024, 128],
                                 initializer=tf.contrib.layers.xavier_initializer())
@@ -75,15 +70,17 @@ def discriminator(x, reuse):
 
     return D_prob, D_logit
 
-def gan_loss(G_sample, X):
+def gan_loss(G_sample, X, sequence_length, sequence_length_vae):
     # G_sample = generator(z)
-    D_real, D_logit_real = discriminator(X,  None)
-    D_fake, D_logit_fake = discriminator(G_sample, True)
+    D_real, D_logit_real = discriminator(X,  None, sequence_length)
 
-    D_loss = (tf.reduce_mean(tf.log(D_real) + tf.log(1. - D_fake))  + tf.reduce_mean(tf.log(D_fake)))
+    G_sample = tf.reshape(tf.pad(tf.reshape(G_sample, [-1, 1024]), [[0, sequence_length[0] - sequence_length_vae[0]], [0, 0]]), [1,-1, 1024])
 
+    D_fake, D_logit_fake = discriminator(G_sample, True, sequence_length_vae)
+
+    # D_loss = (tf.reduce_mean(tf.log(D_real) + tf.log(1. - D_fake))  + tf.reduce_mean(tf.log(D_fake)))
     D_loss = tf.reduce_mean(tf.log(D_real) + tf.log(1. - D_fake) + tf.log(D_fake))
-    return D_loss
+    return D_loss, D_real, D_fake
 
 
 
