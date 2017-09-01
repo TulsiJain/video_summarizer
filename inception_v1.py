@@ -279,9 +279,7 @@ def inception_v1(inputs,
     with slim.arg_scope([slim.batch_norm, slim.dropout],
                         is_training=is_training):
       net, end_points = inception_v1_base(inputs, scope=scope)
-      inputs.get_shape()
 
-      
       with tf.variable_scope('Logits'):
         net = slim.avg_pool2d(net, [7, 7], stride=1, scope='AvgPool_0a_7x7')
 

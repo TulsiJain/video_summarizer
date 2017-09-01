@@ -80,7 +80,7 @@ def gan_loss(G_sample, X, sequence_length, sequence_length_vae):
 
     # D_loss = (tf.reduce_mean(tf.log(D_real) + tf.log(1. - D_fake))  + tf.reduce_mean(tf.log(D_fake)))
     D_loss = tf.reduce_mean(tf.log(D_real) + tf.log(1. - D_fake) + tf.log(D_fake))
-    return D_loss, D_real, D_fake
+    return D_loss
 
 
 
